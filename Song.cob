@@ -10,13 +10,44 @@
        01  PARSECMD            PIC X(80).
        01  REMCMD              PIC X(80).
        01  ERR                 PIC 9(4) COMP-5.
+       01  CURRENTDATE         PIC X(20) VALUE SPACES.
+       01  CURRENTYEAR         PIC 9(4).
+       01  CURRENTMONTH        PIC 9(2).
+       01  CURRENTDAY          PIC 9(2).
+       01  FORMATTEDDATE       PIC A(8).
+       01  MONTHNAMES          PIC A(36).
+       01  MONTHNAME           PIC A(3).
 
        PROCEDURE DIVISION.
        MAIN-PARAGRAPH.
+           *> Get Date
+           STRING
+           "JANFEBMARAPRMAYJUNJULAUGSEPOCTNOVDEC"
+           DELIMITED BY SIZE
+           INTO MONTHNAMES.
+
+           MOVE FUNCTION CURRENT-DATE TO CURRENTDATE.
+           COMPUTE CURRENTYEAR = FUNCTION NUMVAL-C (CURRENTDATE(1:4)).
+           COMPUTE CURRENTMONTH = FUNCTION NUMVAL-C (CURRENTDATE(5:2)). 
+           COMPUTE CURRENTDAY = FUNCTION NUMVAL-C (CURRENTDATE(7:2)).
+
+           IF CURRENTDAY > 15
+               ADD 1 TO CURRENTMONTH
+           END-IF.
+
+           IF CURRENTMONTH > 12
+               MOVE 1 TO CURRENTMONTH
+               ADD 1 TO CURRENTYEAR
+           END-IF.
+
+           MOVE MONTHNAMES((CURRENTMONTH - 1) * 3 + 1:3) TO MONTHNAME
+           STRING MONTHNAME " " CURRENTYEAR 
+           DELIMITED BY SIZE INTO FORMATTEDDATE.
+
            *> Build Prompt
            STRING
-           "Create a music video challenge for the month Oct 2023 ",
-           "and would like you to return a theme ",
+           "Create a music video challenge for the month ",FORMATTEDDATE,
+           " and would like you to return a theme ",
            "for each day in the form of \""a video featuring\"" ",
            "followed by the theme for the day. ",
            "Two days should be free choice days with no theme, ",
@@ -62,8 +93,8 @@
 
                *> Call remind to draw calendar
                STRING
-               "remind -cu -w140,, song.cal October 2023 ",
-               "> song.txt"
+               "remind -cu -w140,, song.cal ",FORMATTEDDATE,
+               " > song.txt"
                DELIMITED BY SIZE INTO REMCMD
                CALL "SYSTEM" USING REMCMD RETURNING ERR
                IF ERR NOT EQUAL ZERO
